@@ -1,0 +1,69 @@
+﻿@{
+    ViewData["Title"] = "PDF Yükleme ve Temizleme";
+}
+
+<h2>PDF Yükleme ve Temizleme</h2>
+
+<form asp-controller="Pdf" asp-action="Upload" enctype="multipart/form-data" method="post">
+    <div class="form-group">
+        <input type="file" name="file" class="form-control" />
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">PDF Yükle ve Temizle</button>
+    </div>
+</form>
+
+<div id="progress-container" class="progress" style="display:none;">
+    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;">
+        Yükleniyor...
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $('form').on('submit', function (e) {
+            e.preventDefault(); // Formun varsayılan gönderimini engelle
+            var formData = new FormData(this);
+            var progressContainer = $('#progress-container').show();
+            var progressBar = $('#progress-bar').css('width', '0%').text('Yükleniyor...');
+
+            // AJAX isteği
+            $.ajax({
+                url: '@Url.Action("Upload", "Pdf")',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                xhr: function () {
+                    var xhr = new window.XMLHttpRequest();
+                    // Yükleme ilerlemesi
+                    xhr.upload.onprogress = function (e) {
+                        if (e.lengthComputable) {
+                            var percentComplete = (e.loaded / e.total) * 100;
+                            progressBar.css('width', percentComplete + '%').text(Math.round(percentComplete) + '% tamamlandı');
+                        }
+                    };
+                    return xhr;
+                },
+                success: function (response, status, xhr) {
+                    // PDF dosyasını indirme işlemi
+                    var blob = new Blob([response], { type: 'application/pdf' });
+                    var link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = 'Cleaned_PDF.pdf'; // İndirme dosya adı
+                    link.click();
+
+                    // İlerleme çubuğu tamamlandı
+                    progressBar.css('width', '100%').text('İşlem Tamamlandı!');
+                },
+                error: function () {
+                    progressBar.css('width', '100%').text('Hata oluştu!');
+                },
+                xhrFields: {
+                    responseType: 'blob'
+                }
+            });
+        });
+
+    </script>
+}
